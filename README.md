@@ -8,9 +8,7 @@
 
 - Her seviye sonrasında topların hızı artmaktadır.
 
-- Ekrandaki mevcut top sayısını 2'ye katlayan küreler, rastgele şekilde düşmektedir.
-
-- Kopyalanan küreler, her zaman yukarı doğru hareket ederler.
+- Ekrandaki mevcut top sayısını 2'ye katlayan küreler, rastgele şekilde düşmektedir. (Kopyalanan küreler, her zaman yukarı doğru hareket ederler.)
 
 - Oyunda aynı anda en fazla 50 top olabilir.
 
