@@ -17,7 +17,7 @@ let balls = [];
 let currentBallSpeed = 5; // Başlangıç hızı
 
 function resetBall() {
-    // Topun başlangıç açısı rastgele olacak. (-60 ile +60 derece arası)
+    // Topun başlangıç açısı rastgele
     const angle = (Math.random() * (Math.PI / 1.5)) - (Math.PI / 3);
     balls = [{
         x: canvas.width / 2,
@@ -61,6 +61,8 @@ let powerUps = [];
 // Başlangıç kurulumu
 resetBall();
 initBricks();
+notificationText = "Level " + level;
+notificationTimer = 180; // 3 saniye (60fps)
 
 // "Sağ tık ile menü açma" özelliği devre dışı
 document.addEventListener('contextmenu', (event) => {
@@ -81,10 +83,10 @@ function spawnPowerUp(x, y) {
 
 function activateDoubleBall() {
     let currentCount = balls.length;
-    if (currentCount >= 50) return; // Ekranda maksimum 50 top oluşur.
+    if (currentCount >= 64) return; // Ekranda maksimum 64 top oluşur.
 
     for (let i = 0; i < currentCount; i++) {
-        if (balls.length >= 50) break;
+        if (balls.length >= 64) break;
         let b = balls[i];
 
         // Kopyalanan topların açısı her zaman "yukarı doğru" olur.
@@ -113,18 +115,20 @@ function checkWin() {
         if (level < 11) {
             level++;
 
+            // Seviye atlandığında bildirim ayarları
+            notificationText = "Level " + level;
+            notificationTimer = 180; // 3 saniye (60fps)
+
             // Seviye 6'da ekstra can kazanılır.
             if (level === 6) {
                 lives++;
-                notificationText = "1 CAN HAKKI KAZANDINIZ";
-                notificationTimer = 180; // Yaklaşık 3 saniye (60fps)
             }
 
             // Paddle genişliği, her seviye artışında 10 piksel azalır.
             paddleWidth -= 10;
             if (paddleWidth < 50) paddleWidth = 50;
 
-            // Topların hızı, her seviye sonrasında 0.5 artar.
+            // Topların hızı, her seviye artışında 0.5 artar.
             currentBallSpeed += 0.5;
             if (currentBallSpeed > 10) currentBallSpeed = 10;
 
@@ -158,6 +162,15 @@ function collisionDetection() {
 }
 
 function update() {
+    if (gameState === "BALL_LOST") {
+        notificationTimer--;
+        if (notificationTimer <= 0) {
+            gameState = "PLAYING";
+            resetBall();
+        }
+        return;
+    }
+
     if (gameState !== "PLAYING") return;
 
     powerUps.forEach((p, index) => {
@@ -189,7 +202,11 @@ function update() {
                         gameState = "GAMEOVER";
                         restartBtn.style.display = "block";
                     } else {
-                        resetBall();
+                        // Top kaybı olduğunda, 3 saniyeliğine bekleme durumuna geçilir.
+                        gameState = "BALL_LOST";
+                        notificationText = "Top Kaybı";
+                        notificationTimer = 180;
+                        powerUps = []; // Top kaybı oluştuğunda, ekrandaki tüm "2x" küreleri temizlenir.
                     }
                 }
             }
@@ -200,8 +217,8 @@ function update() {
 
     collisionDetection();
 
-    // Bildirim sayacını güncelle
-    if (notificationTimer > 0) notificationTimer--;
+    // Bildirim sayacını güncelle (Level yazıları için)
+    if (notificationTimer > 0 && gameState === "PLAYING") notificationTimer--;
 }
 
 function draw() {
@@ -260,12 +277,24 @@ function draw() {
     ctx.textAlign = "center";
     ctx.fillText("TOP: " + balls.length, canvas.width / 2, 30);
 
-    // Bildirim yazısı (seviye 6 bonusu için)
+    // Bildirim yazıları
     if (notificationTimer > 0) {
-        ctx.font = "bold 30px Arial";
-        ctx.fillStyle = "#FFD700"; // Altın sarısı
+        ctx.fillStyle = "#FFD700";
         ctx.textAlign = "center";
-        ctx.fillText(notificationText, canvas.width / 2, canvas.height / 2 + 100);
+
+        if (gameState === "BALL_LOST") {
+            ctx.font = "bold 60px Arial";
+            ctx.fillText(notificationText, canvas.width / 2, 450);
+        } else {
+
+            ctx.font = "bold 60px Arial";
+            ctx.fillText(notificationText, canvas.width / 2, 450);
+
+            if (level === 6) {
+                ctx.font = "25px Arial";
+                ctx.fillText("1 can hakkı kazandınız.", canvas.width / 2, 495);
+            }
+        }
     }
 
     if (gameState === "GAMEOVER") drawOverlay("KAYBETTİNİZ", "#ff4757");
@@ -291,7 +320,8 @@ function restartGame() {
     currentBallSpeed = 5;
     gameState = "PLAYING";
     powerUps = [];
-    notificationTimer = 0;
+    notificationTimer = 180;
+    notificationText = "Level " + level;
     restartBtn.style.display = "none";
     initBricks();
     resetBall();

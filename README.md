@@ -4,12 +4,16 @@
 
 - Seviye 6'da 1 can hakkı verilmektedir.
 
-- Her seviye sonrasında paddle genişliği 10 piksel azalmaktadır.
+- Her seviye sonrasında paddle genişliği azalmaktadır.
 
 - Her seviye sonrasında topların hızı artmaktadır.
 
-- Ekrandaki mevcut top sayısını 2'ye katlayan küreler, rastgele şekilde düşmektedir. (Kopyalanan küreler, her zaman yukarı doğru hareket ederler.)
+- Ekrandaki mevcut top sayısını 2'ye katlayan "2x" küreleri, rastgele şekilde düşmektedirler.
 
-- Oyunda aynı anda en fazla 50 top olabilir.
+- Kopyalanan toplar, her zaman yukarı doğru hareket ederler.
+
+- Tüm topların düşmesi durumunda, ekrandaki "2x" küreleri kaybolmaktadır.
+
+- Oyunda aynı anda en fazla 64 top olabilir.
 
 - Her seviye başlangıcında veya top kaybından sonra, rastgele bir açıyla top fırlatılmaktadır.
