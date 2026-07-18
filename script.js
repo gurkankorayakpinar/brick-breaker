@@ -6,6 +6,8 @@ const restartBtn = document.getElementById("restartBtn");
 let lives = 3;
 let level = 1;
 let gameState = "PLAYING";
+let notificationTimer = 0; // Bildirim süresi için sayaç
+let notificationText = ""; // Bildirim metni
 
 const paddleHeight = 15;
 let paddleWidth = 150; // Başlangıç genişliği
@@ -15,11 +17,13 @@ let balls = [];
 let currentBallSpeed = 5; // Başlangıç hızı
 
 function resetBall() {
+    // Topun başlangıç açısı rastgele olacak. (-60 ile +60 derece arası)
+    const angle = (Math.random() * (Math.PI / 1.5)) - (Math.PI / 3);
     balls = [{
         x: canvas.width / 2,
         y: canvas.height - 50,
-        dx: currentBallSpeed * 0.7,
-        dy: -currentBallSpeed * 0.7,
+        dx: currentBallSpeed * Math.sin(angle),
+        dy: -currentBallSpeed * Math.cos(angle),
         radius: 8,
         speed: currentBallSpeed
     }];
@@ -82,11 +86,15 @@ function activateDoubleBall() {
     for (let i = 0; i < currentCount; i++) {
         if (balls.length >= 50) break;
         let b = balls[i];
+
+        // Kopyalanan topların açısı her zaman "yukarı doğru" olur.
+        const angle = (Math.random() * (Math.PI / 1.5)) - (Math.PI / 3);
+
         balls.push({
             x: b.x,
             y: b.y,
-            dx: -b.dx + (Math.random() - 0.5),
-            dy: b.dy,
+            dx: b.speed * Math.sin(angle),
+            dy: -b.speed * Math.cos(angle), // Her zaman yukarı doğru fırlatır.
             radius: b.radius,
             speed: b.speed
         });
@@ -104,6 +112,13 @@ function checkWin() {
     if (activeBricks === 0 && gameState === "PLAYING") {
         if (level < 11) {
             level++;
+
+            // Seviye 6'da ekstra can kazanılır.
+            if (level === 6) {
+                lives++;
+                notificationText = "1 CAN HAKKI KAZANDINIZ";
+                notificationTimer = 180; // Yaklaşık 3 saniye (60fps)
+            }
 
             // Paddle genişliği, her seviye artışında 10 piksel azalır.
             paddleWidth -= 10;
@@ -184,6 +199,9 @@ function update() {
     });
 
     collisionDetection();
+
+    // Bildirim sayacını güncelle
+    if (notificationTimer > 0) notificationTimer--;
 }
 
 function draw() {
@@ -242,6 +260,14 @@ function draw() {
     ctx.textAlign = "center";
     ctx.fillText("TOP: " + balls.length, canvas.width / 2, 30);
 
+    // Bildirim yazısı (seviye 6 bonusu için)
+    if (notificationTimer > 0) {
+        ctx.font = "bold 30px Arial";
+        ctx.fillStyle = "#FFD700"; // Altın sarısı
+        ctx.textAlign = "center";
+        ctx.fillText(notificationText, canvas.width / 2, canvas.height / 2 + 100);
+    }
+
     if (gameState === "GAMEOVER") drawOverlay("KAYBETTİNİZ", "#ff4757");
     if (gameState === "WIN") drawOverlay("KAZANDINIZ", "#2ed573");
 
@@ -265,6 +291,7 @@ function restartGame() {
     currentBallSpeed = 5;
     gameState = "PLAYING";
     powerUps = [];
+    notificationTimer = 0;
     restartBtn.style.display = "none";
     initBricks();
     resetBall();
