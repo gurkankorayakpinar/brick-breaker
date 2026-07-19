@@ -6,18 +6,24 @@ const restartBtn = document.getElementById("restartBtn");
 let lives = 3;
 let level = 1;
 let gameState = "PLAYING";
+let isPaused = false; // Duraklatma kontrolü
 let notificationTimer = 0; // Bildirim süresi için sayaç
 let notificationText = ""; // Bildirim metni
 
 const paddleHeight = 15;
-let paddleWidth = 150; // Başlangıç genişliği
+let paddleWidth = 150; // Başlangıç genişliği (Son seviyede 100 olacak.)
 let paddleX = (canvas.width - paddleWidth) / 2;
 
 let balls = [];
-let currentBallSpeed = 5; // Başlangıç hızı
+let currentBallSpeed = 5; // Başlangıç hızı (Son seviyede 10 olacak.)
+
+// Rastgele renk üreten yardımcı fonksiyon
+function getRandomColor() {
+    return `hsl(${Math.random() * 360}, 70%, 60%)`;
+}
 
 function resetBall() {
-    // Topun başlangıç açısı rastgele
+    // Topun fırlatma açısı rastgeledir.
     const angle = (Math.random() * (Math.PI / 1.5)) - (Math.PI / 3);
     balls = [{
         x: canvas.width / 2,
@@ -25,17 +31,19 @@ function resetBall() {
         dx: currentBallSpeed * Math.sin(angle),
         dy: -currentBallSpeed * Math.cos(angle),
         radius: 8,
-        speed: currentBallSpeed
+        speed: currentBallSpeed,
+        color: getRandomColor() // İlk top için de rastgele bir renk belirlenir.
     }];
 }
 
 const brickRowCount = 8;
-const brickColumnCount = 10;
+const brickColumnCount = 9;
 const brickWidth = 80;
 const brickHeight = 25;
-const brickPadding = 15;
+const brickPaddingX = 30;
+const brickPaddingY = 15;
 const brickOffsetTop = 60;
-const totalBricksWidth = (brickColumnCount * brickWidth) + ((brickColumnCount - 1) * brickPadding);
+const totalBricksWidth = (brickColumnCount * brickWidth) + ((brickColumnCount - 1) * brickPaddingX);
 const brickOffsetLeft = (canvas.width - totalBricksWidth) / 2;
 
 const rowColors = ["#FF3E3E", "#FF853E", "#FFD93E", "#3EFF4B", "#3E9CFF", "#9B3EFF", "#FF3EB1", "#E0E0E0"];
@@ -62,14 +70,25 @@ let powerUps = [];
 resetBall();
 initBricks();
 notificationText = "Level " + level;
-notificationTimer = 180; // 3 saniye (60fps)
+notificationTimer = 180; // 3 saniye
 
 // "Sağ tık ile menü açma" özelliği devre dışı
 document.addEventListener('contextmenu', (event) => {
     event.preventDefault();
 });
 
+// Klavye kontrolleri (Pause için P tuşu)
+window.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() === "p") {
+        // Sadece oyun oynanırken veya top kaybedildiğinde duraklatılabilir.
+        if (gameState === "PLAYING" || gameState === "BALL_LOST") {
+            isPaused = !isPaused;
+        }
+    }
+});
+
 window.addEventListener("mousemove", (e) => {
+    if (isPaused) return; // Oyun duraklatılmışsa, paddle hareket etmez.
     const rect = canvas.getBoundingClientRect();
     const relativeX = e.clientX - rect.left;
     paddleX = relativeX - paddleWidth / 2;
@@ -78,15 +97,17 @@ window.addEventListener("mousemove", (e) => {
 });
 
 function spawnPowerUp(x, y) {
-    powerUps.push({ x: x, y: y, radius: 12, dy: 3 });
+    // "2x" kürelerinin hızı, mevcut seviyedeki top hızının yarısıdır.
+    powerUps.push({ x: x, y: y, radius: 12, dy: currentBallSpeed / 2 });
 }
 
 function activateDoubleBall() {
     let currentCount = balls.length;
-    if (currentCount >= 64) return; // Ekranda maksimum 64 top oluşur.
+    const maxBalls = 256; // Maksimum top sayısı
 
     for (let i = 0; i < currentCount; i++) {
-        if (balls.length >= 64) break;
+        if (balls.length >= maxBalls) break; // 256 topa ulaşıldıysa, daha fazla ekleme.
+
         let b = balls[i];
 
         // Kopyalanan topların açısı her zaman "yukarı doğru" olur.
@@ -98,7 +119,8 @@ function activateDoubleBall() {
             dx: b.speed * Math.sin(angle),
             dy: -b.speed * Math.cos(angle), // Her zaman yukarı doğru fırlatır.
             radius: b.radius,
-            speed: b.speed
+            speed: b.speed,
+            color: getRandomColor() // Kopyalanan toplara rastgele renk verilir.
         });
     }
 }
@@ -112,31 +134,31 @@ function checkWin() {
     }
 
     if (activeBricks === 0 && gameState === "PLAYING") {
-        if (level < 11) {
+        if (level < 51) {
             level++;
 
             // Seviye atlandığında bildirim ayarları
             notificationText = "Level " + level;
-            notificationTimer = 180; // 3 saniye (60fps)
+            notificationTimer = 180; // 3 saniye
 
-            // Seviye 6'da ekstra can kazanılır.
-            if (level === 6) {
+            // Her 5 seviyede 1 can kazanılır.
+            if (level % 5 === 0) {
                 lives++;
             }
 
-            // Paddle genişliği, her seviye artışında 10 piksel azalır.
-            paddleWidth -= 10;
-            if (paddleWidth < 50) paddleWidth = 50;
+            // Paddle genişliği, her seviye artışında 1 piksel azalır.
+            paddleWidth -= 1;
+            if (paddleWidth < 100) paddleWidth = 100;
 
-            // Topların hızı, her seviye artışında 0.5 artar.
-            currentBallSpeed += 0.5;
+            // Topların hızı, her seviye artışında 0.1 artar.
+            currentBallSpeed += 0.1;
             if (currentBallSpeed > 10) currentBallSpeed = 10;
 
             initBricks();
             resetBall();
             powerUps = [];
         } else {
-            // 11. seviye de bittiyse, oyun kazanılır.
+            // 51. seviye de bittiyse, oyun kazanılır.
             gameState = "WIN";
             restartBtn.style.display = "block";
         }
@@ -162,6 +184,8 @@ function collisionDetection() {
 }
 
 function update() {
+    if (isPaused) return; // Oyun duraklatılmışsa, çalışmaz.
+
     if (gameState === "BALL_LOST") {
         notificationTimer--;
         if (notificationTimer <= 0) {
@@ -202,11 +226,11 @@ function update() {
                         gameState = "GAMEOVER";
                         restartBtn.style.display = "block";
                     } else {
-                        // Top kaybı olduğunda, 3 saniyeliğine bekleme durumuna geçilir.
+                        // Top kaybı olduğunda 3 saniye bekleme süresi
                         gameState = "BALL_LOST";
                         notificationText = "Top Kaybı";
                         notificationTimer = 180;
-                        powerUps = []; // Top kaybı oluştuğunda, ekrandaki tüm "2x" küreleri temizlenir.
+                        powerUps = []; // Top kaybı olduğunda, o anda düşmekte olan tüm "2x" küreleri temizlenir.
                     }
                 }
             }
@@ -228,8 +252,8 @@ function draw() {
     for (let c = 0; c < brickColumnCount; c++) {
         for (let r = 0; r < brickRowCount; r++) {
             if (bricks[c][r].status === 1) {
-                let bx = (c * (brickWidth + brickPadding)) + brickOffsetLeft;
-                let by = (r * (brickHeight + brickPadding)) + brickOffsetTop;
+                let bx = (c * (brickWidth + brickPaddingX)) + brickOffsetLeft;
+                let by = (r * (brickHeight + brickPaddingY)) + brickOffsetTop;
                 bricks[c][r].x = bx;
                 bricks[c][r].y = by;
                 ctx.fillStyle = bricks[c][r].color;
@@ -250,7 +274,7 @@ function draw() {
     balls.forEach(ball => {
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-        ctx.fillStyle = "#FFF";
+        ctx.fillStyle = ball.color;
         ctx.fill();
         ctx.closePath();
     });
@@ -286,15 +310,24 @@ function draw() {
             ctx.font = "bold 60px Arial";
             ctx.fillText(notificationText, canvas.width / 2, 450);
         } else {
-
             ctx.font = "bold 60px Arial";
             ctx.fillText(notificationText, canvas.width / 2, 450);
 
-            if (level === 6) {
+            if (level % 5 === 0 && level > 1) {
                 ctx.font = "25px Arial";
                 ctx.fillText("1 can hakkı kazandınız.", canvas.width / 2, 495);
             }
         }
+    }
+
+    // Pause ekranı
+    if (isPaused) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "bold 70px Arial";
+        ctx.fillStyle = "#FFF";
+        ctx.textAlign = "center";
+        ctx.fillText("DURAKLATILDI", canvas.width / 2, canvas.height / 2);
     }
 
     if (gameState === "GAMEOVER") drawOverlay("KAYBETTİNİZ", "#ff4757");
@@ -319,6 +352,7 @@ function restartGame() {
     paddleWidth = 150;
     currentBallSpeed = 5;
     gameState = "PLAYING";
+    isPaused = false;
     powerUps = [];
     notificationTimer = 180;
     notificationText = "Level " + level;
