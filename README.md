@@ -18,7 +18,7 @@
 
 - Oyunda aynı anda en fazla 256 top olabilir.
 
-- Her seviye başlangıcında veya top kaybından sonra, rastgele bir açıyla top fırlatılmaktadır.
+- Her seviye başlangıcında veya top kaybından sonra, rastgele bir açıyla top fırlatılmaktadır. Paddle o anda neredeyse, top da oradan fırlatılmaktadır.
 
 - Toplar, rastgele renklere sahiptir.
 
